@@ -1,12 +1,16 @@
 import asyncio
-
+import logging
+import os
 from whisper_client.capture import mic_chunks
-from whisper_client.session import dictate
+from whisper_client.session import dictate, check_server
 from whisper_client.hotkey import start_listener
 from whisper_client.inject import inject
+from whisper_client.sounds import START, STOP, ERROR, play
 
 MIN_PRESS = 0.2
-FINISH_TIMEOUT = 30.
+FINISH_TIMEOUT = 30
+
+log = logging.getLogger(__name__)
 
 async def wait_for(events, expected):
     while True:
@@ -21,6 +25,7 @@ def transcribe(stop_event):
 async def run(events, transcribe, deliver, min_press=MIN_PRESS, finish_timeout=FINISH_TIMEOUT):
     while True:
         debut = await wait_for(events, "press")
+        await play(START)
 
         stop_event = asyncio.Event()
         task = asyncio.create_task(transcribe(stop_event))
@@ -34,12 +39,13 @@ async def run(events, transcribe, deliver, min_press=MIN_PRESS, finish_timeout=F
             continue
 
         stop_event.set()
-
+        await play(STOP)
         try:
             async with asyncio.timeout(finish_timeout):
                 text = await task
         except Exception as e:
-            print("Dictée échouée :", repr(e))
+            log.exception("Dictée échouée")
+            await play(ERROR)
             text = ""
 
         if text:
@@ -49,6 +55,8 @@ async def run(events, transcribe, deliver, min_press=MIN_PRESS, finish_timeout=F
             events.get_nowait()
 
 async def main():
+    await check_server()
+
     event_queue = asyncio.Queue()
     loop = asyncio.get_running_loop()
     listener = start_listener(loop, event_queue)
@@ -59,7 +67,12 @@ async def main():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=os.environ.get("LOG_LEVEL", "INFO"),
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-       print("Au revoir")
+       log.info("Au revoir")

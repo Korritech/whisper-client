@@ -1,8 +1,11 @@
 import asyncio
 import pyaudio
+import logging
 
 SAMPLE_RATE=16000
 CHUNK_SIZE=1024
+
+log = logging.getLogger(__name__)
 
 async def mic_chunks(stop_event: asyncio.Event):
     queue = asyncio.Queue()
@@ -28,7 +31,7 @@ async def mic_chunks(stop_event: asyncio.Event):
     )
     stopper = asyncio.create_task(wait_for_stop())
 
-    print("Start audio capture...")
+    log.info("Start audio capture...")
     try:
         while True:
             chunk = await queue.get()

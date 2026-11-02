@@ -5,6 +5,14 @@ import pytest
 from whisper_client.__main__ import run
 
 
+@pytest.fixture(autouse=True)
+def no_sound(monkeypatch):
+    async def silent(sound):
+        pass
+
+    monkeypatch.setattr("whisper_client.__main__.play", silent, raising=False)
+
+
 async def settle():
     """Lets the other tasks run until they are all waiting."""
     for _ in range(10):
