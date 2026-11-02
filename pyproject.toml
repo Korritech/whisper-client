@@ -1,0 +1,25 @@
+[project]
+name = "whisper-client"
+version = "0.1.0"
+description = "Client de dictée vocale pour whisper-flow : micro -> WebSocket -> texte injecté dans l'app active"
+requires-python = ">=3.11"
+dependencies = [
+    "websockets",
+    "pyaudio",
+    "pynput",
+    "httpx",
+    "pyobjc-framework-Cocoa"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio"
+]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["whisper_client"]
