@@ -2,13 +2,15 @@ import asyncio
 import logging
 import os
 from whisper_client.capture import mic_chunks
-from whisper_client.session import dictate, check_server
+from whisper_client.session import dictate
 from whisper_client.hotkey import start_listener
 from whisper_client.inject import inject
 from whisper_client.sounds import START, STOP, ERROR, play
+from whisper_client.server import managed_server, check_server
+from whisper_client import status
+from whisper_client.menubar import Backend, App
 
-MIN_PRESS = 0.2
-FINISH_TIMEOUT = 30
+from whisper_client.config import FINISH_TIMEOUT, LOG_LEVEL, MIN_PRESS
 
 log = logging.getLogger(__name__)
 
@@ -25,6 +27,7 @@ def transcribe(stop_event):
 async def run(events, transcribe, deliver, min_press=MIN_PRESS, finish_timeout=FINISH_TIMEOUT):
     while True:
         debut = await wait_for(events, "press")
+        status.set(status.RECORDING)
         await play(START)
 
         stop_event = asyncio.Event()
@@ -34,17 +37,21 @@ async def run(events, transcribe, deliver, min_press=MIN_PRESS, finish_timeout=F
         # Cancel capture if press time is < min press time
         duree = fin - debut;
         if(duree <= min_press):
+            status.set(status.READY)
             task.cancel()
             await asyncio.wait([task])
             continue
 
         stop_event.set()
+        status.set(status.TRANSCRIBING)
         await play(STOP)
         try:
             async with asyncio.timeout(finish_timeout):
                 text = await task
+                status.set(status.READY)
         except Exception as e:
             log.exception("Dictée échouée")
+            status.set(status.ERROR)
             await play(ERROR)
             text = ""
 
@@ -54,25 +61,28 @@ async def run(events, transcribe, deliver, min_press=MIN_PRESS, finish_timeout=F
         while not events.empty():
             events.get_nowait()
 
-async def main():
-    await check_server()
 
-    event_queue = asyncio.Queue()
-    loop = asyncio.get_running_loop()
-    listener = start_listener(loop, event_queue)
-    try:
-        await run(event_queue, transcribe, inject)
-    finally:
-        listener.stop()
+async def main():
+    async with managed_server():
+        await check_server()
+        status.set(status.READY)
+
+        event_queue = asyncio.Queue()
+        loop = asyncio.get_running_loop()
+        listener = start_listener(loop, event_queue)
+        try:
+            await run(event_queue, transcribe, inject)
+        finally:
+            listener.stop()
 
 
 if __name__ == "__main__":
     logging.basicConfig(
-        level=os.environ.get("LOG_LEVEL", "INFO"),
+        level=os.environ.get("LOG_LEVEL", LOG_LEVEL),
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
+    backend = Backend(main)
+    backend.start()
+    App(backend).run()
 
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-       log.info("Au revoir")
+#    asyncio.run(main())

@@ -4,7 +4,8 @@ from contextlib import asynccontextmanager
 
 import pytest
 
-from whisper_client.session import MODEL, PROTOCOL_VERSION, check_server
+from whisper_client.server import PROTOCOL_VERSION, check_server
+from whisper_client.session import MODEL
 
 
 @asynccontextmanager
@@ -70,5 +71,8 @@ async def test_exits_on_an_http_error():
 
 
 @pytest.mark.asyncio
-async def test_only_warns_when_the_server_is_down():
-    await check_server("http://127.0.0.1:1")
+async def test_exits_when_the_server_is_down():
+    with pytest.raises(SystemExit) as error:
+        await check_server("http://127.0.0.1:1")
+
+    assert error.value.code not in (0, None)

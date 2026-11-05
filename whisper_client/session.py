@@ -5,38 +5,15 @@ import httpx
 import websockets
 from contextlib import aclosing
 import logging
+from whisper_client.server import fetch_ready, check_server
+from whisper_client.config import LANGUAGE, MODEL, PROMPT, WS_URL
 
-HTTP_URL="http://127.0.0.1:8181"
-PROTOCOL_VERSION = 1
-WS_URL="ws://127.0.0.1:8181/ws"
-PROMPT = "Je développe avec Claude Code en Python, avec asyncio et des WebSocket."
-MODEL = "small.pt"
 
 log = logging.getLogger(__name__)
 
-async def check_server(base_url=HTTP_URL):
-
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(f"{base_url}/ready")
-    except httpx.TransportError:
-        log.warning("WhisperFlow server not ready")
-        return
-    try:
-        response.raise_for_status()
-    except httpx.HTTPStatusError as e:
-        raise SystemExit("WhisperFlow server not available. Status %d", e.response.status_code)
-
-    info = response.json()
-    if info["protocol_version"] != PROTOCOL_VERSION:
-        raise SystemExit(f"[Error] Invalid protocol version. Received {info['protocol_version']}, expected {PROTOCOL_VERSION}")
-    if MODEL not in info["models"]:
-        raise SystemExit(f"[Error] Invalid model. Received {info['models']}, expected {MODEL}")
-
-
 async def dictate(chunks, url=WS_URL):
     async with websockets.connect(url) as websocket:
-        await websocket.send(json.dumps({"type": "start", "model": MODEL, "language": "fr", "prompt": PROMPT}))
+        await websocket.send(json.dumps({"type": "start", "model": MODEL, "language": LANGUAGE, "prompt": PROMPT}))
 
         async with asyncio.TaskGroup() as group:
             group.create_task(send_audio(websocket, chunks))

@@ -8,7 +8,8 @@ dependencies = [
     "pyaudio",
     "pynput",
     "httpx",
-    "pyobjc-framework-Cocoa"
+    "pyobjc-framework-Cocoa",
+    "rumps"
 ]
 
 [project.optional-dependencies]

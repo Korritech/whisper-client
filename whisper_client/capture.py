@@ -2,8 +2,7 @@ import asyncio
 import pyaudio
 import logging
 
-SAMPLE_RATE=16000
-CHUNK_SIZE=1024
+from whisper_client.config import SAMPLE_RATE, CHUNK_SIZE
 
 log = logging.getLogger(__name__)
 
