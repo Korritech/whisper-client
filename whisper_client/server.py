@@ -1,6 +1,8 @@
 
 import asyncio
 import os
+import json
+
 from contextlib import asynccontextmanager
 from pathlib import Path
 import httpx
@@ -17,14 +19,26 @@ SERVER_COMMAND = [
     "--port", "8181",
 ]
 
-async def fetch_ready(base_url):
+async def fetch_ready(base_url=HTTP_URL):
     async with httpx.AsyncClient() as client:
         response = await client.get(f"{base_url}/ready", timeout=1)
     response.raise_for_status()
     return response.json()
 
+async def get_models(base_url=HTTP_URL):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"{base_url}/ready", timeout=1)
 
-async def is_ready(base_url):
+    if(response.is_success):
+        resp_json = json.loads(response.text)
+        if resp_json["models"]:
+            return  resp_json["models"]
+
+    return []
+
+
+
+async def is_ready(base_url=HTTP_URL):
     try:
         await fetch_ready(base_url)
     except httpx.HTTPError:

@@ -6,14 +6,14 @@ import websockets
 from contextlib import aclosing
 import logging
 from whisper_client.server import fetch_ready, check_server
-from whisper_client.config import LANGUAGE, MODEL, PROMPT, WS_URL
+from whisper_client.config import LANGUAGE,MODEL,PROMPTS, WS_URL
 
 
 log = logging.getLogger(__name__)
 
-async def dictate(chunks, url=WS_URL):
+async def dictate(chunks, url=WS_URL, model=MODEL, language=LANGUAGE, prompt=PROMPTS[LANGUAGE]):
     async with websockets.connect(url) as websocket:
-        await websocket.send(json.dumps({"type": "start", "model": MODEL, "language": LANGUAGE, "prompt": PROMPT}))
+        await websocket.send(json.dumps({"type": "start", "model": model, "language": language, "prompt": prompt}))
 
         async with asyncio.TaskGroup() as group:
             group.create_task(send_audio(websocket, chunks))

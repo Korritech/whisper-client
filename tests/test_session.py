@@ -50,6 +50,31 @@ async def test_sends_start_then_audio_then_stop():
 
 
 @pytest.mark.asyncio
+async def test_start_frame_carries_the_chosen_settings():
+    fake = FakeServer([])
+    async with serve(fake.handler, "127.0.0.1", 0) as server:
+        port = server.sockets[0].getsockname()[1]
+        await asyncio.wait_for(
+            dictate(
+                audio(b"aa"),
+                f"ws://127.0.0.1:{port}",
+                model="tiny.en.pt",
+                language="en",
+                prompt="Hello. AWS.",
+            ),
+            5,
+        )
+
+    start = json.loads(fake.received[0])
+    assert start == {
+        "type": "start",
+        "model": "tiny.en.pt",
+        "language": "en",
+        "prompt": "Hello. AWS.",
+    }
+
+
+@pytest.mark.asyncio
 async def test_joins_finals_and_ignores_partials():
     replies = [
         result(" Bonjour", True),

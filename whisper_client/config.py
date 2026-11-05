@@ -14,7 +14,10 @@ STOP_TIMEOUT = 5
 # Transcription
 MODEL = "small.pt"
 LANGUAGE = "fr"
-PROMPT = "Je développe avec Claude Code en Python, avec asyncio et des WebSocket."
+PROMPTS = {
+    "fr": "Je développe avec Claude Code.",
+    "en": "I'm developping with Claude Code.",
+}
 
 # Dictée
 MIN_PRESS = 0.2

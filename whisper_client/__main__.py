@@ -6,13 +6,15 @@ from whisper_client.session import dictate
 from whisper_client.hotkey import start_listener
 from whisper_client.inject import inject
 from whisper_client.sounds import START, STOP, ERROR, play
-from whisper_client.server import managed_server, check_server
+from whisper_client.server import managed_server, check_server, get_models
 from whisper_client import status
 from whisper_client.menubar import Backend, App
+from whisper_client.settings import load
 
 from whisper_client.config import FINISH_TIMEOUT, LOG_LEVEL, MIN_PRESS
 
 log = logging.getLogger(__name__)
+settings = load()
 
 async def wait_for(events, expected):
     while True:
@@ -22,7 +24,12 @@ async def wait_for(events, expected):
 
 
 def transcribe(stop_event):
-    return dictate(mic_chunks(stop_event))
+    return dictate(
+        mic_chunks(stop_event),
+        model=settings.model,
+        language=settings.language,
+        prompt=settings.prompt()
+    )
 
 async def run(events, transcribe, deliver, min_press=MIN_PRESS, finish_timeout=FINISH_TIMEOUT):
     while True:
@@ -65,6 +72,10 @@ async def run(events, transcribe, deliver, min_press=MIN_PRESS, finish_timeout=F
 async def main():
     async with managed_server():
         await check_server()
+        models = await get_models()
+        log.info(f"models {models}")
+        status.models = models
+
         status.set(status.READY)
 
         event_queue = asyncio.Queue()
@@ -83,6 +94,6 @@ if __name__ == "__main__":
     )
     backend = Backend(main)
     backend.start()
-    App(backend).run()
+    App(backend, settings).run()
 
 #    asyncio.run(main())

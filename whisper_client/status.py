@@ -5,6 +5,7 @@ TRANSCRIBING = "transcribing"
 ERROR = "error"
 
 current = STARTING
+models = []
 
 
 def set(value):
