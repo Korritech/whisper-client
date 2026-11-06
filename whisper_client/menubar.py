@@ -2,9 +2,11 @@ import asyncio
 import threading
 import logging
 import rumps
+from AppKit import NSApp
 from functools import partial
 from whisper_client import status
 from whisper_client.settings import save
+
 
 ICONS = {
     status.STARTING: "⚪",
@@ -86,18 +88,24 @@ class App(rumps.App):
         self.vocabulary_menu.add(rumps.MenuItem("Add a term", callback=self.add_term))
 
     def add_term(self, _sender):
-        window = rumps.Window(title="Add a term",ok="OK",cancel="Cancel")
+        window = rumps.Window(
+            title="Add a term",
+            message="Word, or name that whisper should know how to spell.\nEx. : AWS, Kubernetes, pytest",
+            ok="Add",
+            cancel="Cancel",
+            dimensions=(260, 24),
+        )
+        NSApp.activateIgnoringOtherApps_(True)
         response = window.run()
         term = response.text
         if not response.clicked or not term or term in self.settings.vocabulary:
             return
         self.settings.vocabulary = self.settings.vocabulary + [term]
-        self.settings.vocabulary = [t for t in self.settings.vocabulary if t != term]
         save(self.settings)
         self.build_vocabulary_menu()
 
     def remove_term(self, term, _sender):
-        self.settings.vocabulary.remove(term)
+        self.settings.vocabulary = [t for t in self.settings.vocabulary if t != term]
         save(self.settings)
 
     def choose_language(self, code, _sender):
